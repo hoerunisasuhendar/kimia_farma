@@ -1,0 +1,67 @@
+-- Membuat tabel baru untuk analisa data
+CREATE TABLE `rakamin-kf-analytics-123456.kimia_farma.tabel_analisa` AS
+SELECT
+
+  -- ID dan tanggal transaksi
+  t.transaction_id,
+  t.date,
+
+  -- Informasi cabang
+  t.branch_id,
+  kc.branch_name,
+  kc.kota,
+  kc.provinsi,
+  kc.rating AS rating_cabang,
+
+  -- Informasi pelanggan
+  t.customer_name,
+
+  -- Detail informasi produk
+  t.product_id,
+  p.product_name,
+  p.product_category,
+  t.price AS actual_price,
+  t.discount_percentage,
+
+  -- Perhitungan persentase gross laba (dihitung berdasarkan rentang harga)
+  CASE
+    WHEN t.price <= 50000 THEN 0.10
+    WHEN t.price > 50000 AND t.price <= 100000 THEN 0.15
+    WHEN t.price > 100000 AND t.price <= 300000 THEN 0.20
+    WHEN t.price > 300000 AND t.price <= 500000 THEN 0.25
+    ELSE 0.30
+  END AS persentase_gross_laba,
+
+  -- Perhitungan harga penjualan (nett_sales) setelah diskon
+  t.price * (1 - (t.discount_percentage / 100)) AS nett_sales
+
+s   -- Perhitungan keuntungan (nett_profit)
+   (t.price * (1 -(t.discount_percentage))) * (
+        CASE
+            WHEN t.price <= 50000 THEN 0.10
+            WHEN t.price > 50000 AND t.price <= 100000 THEN 0.15
+            WHEN t.price > 100000 AND t.price <= 300000 THEN 0.20
+            WHEN t.price > 300000 AND t.price <= 500000 THEN 0.25
+            ELSE 0.30
+        END
+   ) AS nett_profit
+
+   -- Rating transaksi
+   t.transaksi AS rating_transaksi
+
+FROM
+-- Tabel utama transaksi
+    "rakamin-kf-analytics-123456.kimia_farma.kf_final_transaction" AS t
+
+--Join dengan tabel cabang
+LEFT JOIN
+    "rakamin-kf-analytics-123456.kimia_farma.kf_kantor_cabang" AS kc
+    ON t.branch_id = kc.branch_id
+
+-- Join dengan tabel produk
+LEFT JOIN
+    "rakamin-kf-analytics-123456.kimia_farma.kf_product" AS P
+    ON t.product_id = p.product_id
+
+-- Selesai    
+
